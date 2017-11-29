@@ -30,6 +30,9 @@ var tootPic = {
                 if (media['type'] == 'youtube') {
                     tootPic.gallery.addYoutube(media);
                 }
+                if (media['type'] == 'twitch') {
+                    tootPic.gallery.addTwitch(media);
+                }
                 if (media['type'] == 'video') {
                     tootPic.gallery.addVideo(media);
                 }
@@ -40,6 +43,9 @@ var tootPic = {
         },
         addYoutube: function(url) {
             $('.container > .row').append('<div class="card" id="'+url['id']+'"><iframe height="225" src="https://www.youtube.com/embed/'+url['youtube_id']+'" frameborder="0" allowfullscreen></iframe>'+url['content']+'</div>');
+        },
+        addTwitch: function(url) {
+            $('.container > .row').append('<div class="card" id="'+url['id']+'"><iframe height="225" src="https://clips.twitch.tv/embed?clip='+url['twitch_id']+'&autoplay=false&tt_medium=clips_embed frameborder="0" allowfullscreen></iframe>'+url['content']+'</div>');
         },
         addVideo: function(video) {
             var media_spoiler = "";
@@ -109,10 +115,13 @@ var tootPic = {
                 this.setLastDate("");
             },
             match: function(toot) {
-                return toot['media_attachments'].length > 0 || this.checkYoutube(toot);
+                media = toot['media_attachments'].length > 0;
+                youtube = this.checkYoutube(toot);
+                twitch = this.checkTwitch(toot);
+                return media || youtube || twitch;
             },
 
-            _checkYoutube: function(youtube, toot, pattern) {
+            _checkURL: function(youtube, toot, pattern) {
                 reg_gi = new RegExp(pattern, 'gi');
                 reg_i = new RegExp(pattern, 'i');
                 match = toot['content'].match(reg_gi);
@@ -128,10 +137,16 @@ var tootPic = {
             },
             checkYoutube: function(toot) {
                 var youtube = new Array();
-                tootPic.mstdn.timeline._checkYoutube(youtube, toot, /https:\/\/youtu\.be\/([^"]+)/);
-                tootPic.mstdn.timeline._checkYoutube(youtube, toot, /https:\/\/www\.youtube\.com\/watch\?v=([^"]+)/);
+                tootPic.mstdn.timeline._checkURL(youtube, toot, /https:\/\/youtu\.be\/([^"]+)/);
+                tootPic.mstdn.timeline._checkURL(youtube, toot, /https:\/\/www\.youtube\.com\/watch\?v=([^"]+)/);
                 toot['youtube'] = youtube;
                 return youtube;
+            },
+            checkTwitch: function(toot) {
+                var twitch = new Array();
+                tootPic.mstdn.timeline._checkURL(twitch, toot, /https:\/\/clips\.twitch\.tv\/([^"]+)/);
+                toot['twitch'] = twitch;
+                return twitch;
             },
             innerHTML: function(toot) {
                 var date = (new Date(toot['created_at'])).toLocaleString();
@@ -192,14 +207,25 @@ var tootPic = {
                             if (tootPic.mstdn.timeline.match(toot)) {
                                 // 不要な部分を消去
                                 $.each($.parseHTML(toot['content']), function(i, p) {$.each(p.children, function(v, e) {
+                                    if (e.nodeName == "A") {
+                                        console.log(e);
+                                    }
                                     // ハッシュタグを消去
                                     if (e.nodeName == "A" && e.className == "mention hashtag" && e.innerText.toUpperCase() == "#"+tootPic.mstdn.timeline.tag.toUpperCase()) {
                                         toot['content'] = toot['content'].replace(e.outerHTML, "");
                                     }
                                     // 添付ファイルパスを消去
-                                    if (e.nodeName == "A" && e.pathname.match(/^\/media\//)) {
+                                    if (e.nodeName == "A" && e.pathname.match(/^\/media\/[^/]+$/)) {
                                         toot['content'] = toot['content'].replace(e.outerHTML, "");
                                     }
+                                    // Youtubeリンクを消去
+                                    if (e.nodeName == "A" && (e.hostname == "youtu.be" || (e.hostname == "www.youtube.com" && e.pathname.match(/^\/watch$/)))) {
+                                        toot['content'] = toot['content'].replace(e.outerHTML, "");
+                                    }
+                                    // Twitchリンクを消去
+                                    if (e.nodeName == "A" && e.hostname == "clips.twitch.tv") {
+                                        toot['content'] = toot['content'].replace(e.outerHTML, "");
+                                    }                                    
                                 });});
 
                                 // カスタム絵文字変換
@@ -226,12 +252,24 @@ var tootPic = {
                                         'sensitive': toot['sensitive']
                                     });
                                 });
-                                if (typeof(toot['youtube']) != 'undefined') {
+                                if (typeof(toot['youtube']) != "undefined") {
                                     toot['youtube'].forEach(function(url) {
                                         media_list.push({
                                             'id': toot['id'],
                                             'type': 'youtube',
                                             'youtube_id': url['id'],
+                                            'url': url['url'],
+                                            'content': tootPic.mstdn.timeline.innerHTML(toot),
+                                            'sensitive': toot['sensitive']
+                                         });
+                                    });
+                                }
+                                if (typeof(toot['twitch']) != "undefined") {
+                                    toot['twitch'].forEach(function(url) {
+                                        media_list.push({
+                                            'id': toot['id'],
+                                            'type': 'twitch',
+                                            'twitch_id': url['id'],
                                             'url': url['url'],
                                             'content': tootPic.mstdn.timeline.innerHTML(toot),
                                             'sensitive': toot['sensitive']
@@ -323,7 +361,7 @@ var tootPic = {
                 $("#domain-error").remove();
             } else {
                 if ($("#domain-error").length==0) {
-                    $("#domain").after("<br /><span id='domain-error'>有効なドメインを入力してください</span>");
+                    alert("有効なドメインを入力してください。");
                 }
             }
         });
@@ -338,7 +376,7 @@ var tootPic = {
                 $("#hashtag-error").remove();
             } else {
                 if ($("#tag-error").length==0) {
-                    $("#hashtag").after("<br /><span id='hashtag-error'>有効なタグを入力してください</span>");
+                    alert("有効なタグを入力してください。");                    
                 }
             }
         });

@@ -169,3 +169,7 @@ img.emoji {
 .toot-btn {
   margin: 0 0 0 15px
 }
+
+.detailed-status.light {
+  font-size: 14px;
+}
