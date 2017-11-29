@@ -1,6 +1,7 @@
 Array.prototype.getLastVal = function (){ return this[this.length -1];}
 
 var tootPic = {
+    pic_url: "https://tootpic.net",
     client_name: "Tootpic",
     domain_reg_rule: new RegExp(/^[0-9a-zA-Z\-]+\.[0-9a-zA-Z\-]+$/, 'gi'),
     tag_reg_rule: new RegExp(/^[\w\u30a0-\u30ff\u3040-\u309f\u30e0-\u9fcf０-ｚ]+$/, 'gi'),
@@ -347,6 +348,9 @@ var tootPic = {
         $('#loading').delay(600).fadeOut(300);
     },
 
+    getShareUrl: function() {
+        return "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+tootPic.pic_url+"/?domain="+tootPic.mstdn.domain+"&tag="+tootPic.mstdn.timeline.tag+" #"+tootPic.mstdn.timeline.tag);
+    },
     menuInit: function() {
         $("#domain").val(tootPic.mstdn.domain);
         $("#hashtag").val(tootPic.mstdn.timeline.tag);
@@ -357,7 +361,7 @@ var tootPic = {
                 $('.container > .row').empty();
                 tootPic.mstdn.timeline.setMaxId("");
                 tootPic.mstdn.timeline.get();
-                $(".toot-btn").attr("href", "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+"#"+tootPic.mstdn.timeline.tag));
+                $(".toot-btn").attr("href", tootPic.getShareUrl());
                 $("#domain-error").remove();
             } else {
                 if ($("#domain-error").length==0) {
@@ -372,7 +376,7 @@ var tootPic = {
                 $('.container > .row').empty();
                 tootPic.mstdn.timeline.setMaxId("");
                 tootPic.mstdn.timeline.get();
-                $(".toot-btn").attr("href", "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+"#"+tootPic.mstdn.timeline.tag));
+                $(".toot-btn").attr("href", tootPic.getShareUrl());
                 $("#hashtag-error").remove();
             } else {
                 if ($("#tag-error").length==0) {
@@ -384,7 +388,7 @@ var tootPic = {
             tootPic.mstdn.timeline.get();
             return false;
         });
-        $(".toot-btn").attr("href", "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+"#"+tootPic.mstdn.timeline.tag));
+        $(".toot-btn").attr("href", tootPic.getShareUrl());
     },
 
     // 最終取得トゥートの時間を表示
