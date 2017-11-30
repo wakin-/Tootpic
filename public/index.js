@@ -208,9 +208,6 @@ var tootPic = {
                             if (tootPic.mstdn.timeline.match(toot)) {
                                 // 不要な部分を消去
                                 $.each($.parseHTML(toot['content']), function(i, p) {$.each(p.children, function(v, e) {
-                                    if (e.nodeName == "A") {
-                                        console.log(e);
-                                    }
                                     // ハッシュタグを消去
                                     if (e.nodeName == "A" && e.className == "mention hashtag" && e.innerText.toUpperCase() == "#"+tootPic.mstdn.timeline.tag.toUpperCase()) {
                                         toot['content'] = toot['content'].replace(e.outerHTML, "");
@@ -421,6 +418,11 @@ var tootPic = {
         this.gallery.init();
 
         this.mstdn.timeline.get();
+
+        $(window).bottom();
+        $(window).bind("bottom", function() {
+            tootPic.mstdn.timeline.get();
+        });
 
         // テストモード
         if (this.params.test=="t") {
