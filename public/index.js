@@ -34,6 +34,12 @@ var tootPic = {
                 if (media['type'] == 'twitch') {
                     tootPic.gallery.addTwitch(media);
                 }
+                if (media['type'] == 'niconico') {
+                    tootPic.gallery.addNiconico(media);
+                }
+                if (media['type'] == 'soundcloud') {
+                    tootPic.gallery.addSoundcloud(media);
+                }
                 if (media['type'] == 'video') {
                     tootPic.gallery.addVideo(media);
                 }
@@ -42,11 +48,24 @@ var tootPic = {
                 }
             });
         },
-        addYoutube: function(url) {
-            $('.container > .row').append('<div class="card" id="'+url['id']+'"><iframe height="225" src="https://www.youtube.com/embed/'+url['youtube_id']+'" frameborder="0" allowfullscreen></iframe>'+url['content']+'</div>');
+        addYoutube: function(embed) {
+            $('.container > .row').append('<div class="card" id="'+embed['id']+'"><iframe height="225" src="https://www.youtube.com/embed/'+embed['embed_id']+'" frameborder="0" allowfullscreen></iframe>'+embed['content']+'</div>');
         },
-        addTwitch: function(url) {
-            $('.container > .row').append('<div class="card" id="'+url['id']+'"><iframe height="225" src="https://clips.twitch.tv/embed?clip='+url['twitch_id']+'&autoplay=false&tt_medium=clips_embed frameborder="0" allowfullscreen></iframe>'+url['content']+'</div>');
+        addTwitch: function(embed) {
+            $('.container > .row').append('<div class="card" id="'+embed['id']+'"><iframe height="225" src="https://clips.twitch.tv/embed?clip='+embed['embed_id']+'&autoplay=false&tt_medium=clips_embed frameborder="0" allowfullscreen></iframe>'+embed['content']+'</div>');
+        },
+        addNiconico: function(embed) {
+            $('.container > .row').append('<div class="card" id="'+embed['id']+'"><iframe height="225" src="https://us-central1-tootpic-dbac7.cloudfunctions.net/nicoScript?id='+embed['embed_id']+'"></iframe>'+embed['content']+'</div>');
+        },
+        addSoundcloud: function(embed) {
+            $('.container > .row').append('<div class="card" id="'+embed['id']+'"></div>');
+            var url = "http://soundcloud.com/oembed?format=json&url=https://soundcloud.com/"+embed['embed_id'];
+            tootPic.httpRequest(url, "GET", {}, {}, function(responseText) {
+                var arr = JSON.parse(responseText);
+                $('.container > .row > #'+embed['id']).append(arr['html']+embed['content']);
+            }, function() {
+                $('.container > .row > #'+embed['id']).remove();
+            });
         },
         addVideo: function(video) {
             var media_spoiler = "";
@@ -66,7 +85,15 @@ var tootPic = {
             }
             $(".container > .row").append('<div class="card" id="'+image['id']+'"><a '+image_display+' href="'+image['src']+'"><img src="'+image['thumb']+'"></a>'+media_spoiler+image['content']+'</div>');
         },
-        init: function() {
+        embedSoundcloud: function(response) {
+            console.log(response);
+        },
+/*        writeNicoVideoPlayer: function(player) {
+            player.width = "400";
+            player.height = "255";
+            player.write(id);
+        },
+ */       init: function() {
             $("body").on("click", ".status__content__spoiler-link", function(e) {
                 var id = $(this).parent().parent().parent().parent().parent().parent().attr("id");
                 if ($("div#"+id+" .e-content").css("display")=="none") {
@@ -117,37 +144,36 @@ var tootPic = {
             },
             match: function(toot) {
                 media = toot['media_attachments'].length > 0;
-                youtube = this.checkYoutube(toot);
-                twitch = this.checkTwitch(toot);
-                return media || youtube || twitch;
+                var embed = new Array();
+                tootPic.mstdn.timeline._checkURL(embed, toot, /https:\/\/youtu\.be\/([^"]+)/, 'youtube');
+                tootPic.mstdn.timeline._checkURL(embed, toot, /https:\/\/www\.youtube\.com\/watch\?v=([^"]+)/, 'youtube');
+                tootPic.mstdn.timeline._checkURL(embed, toot, /https:\/\/clips\.twitch\.tv\/([^"]+)/, 'twitch');
+                tootPic.mstdn.timeline._checkURL(embed, toot, /https?:\/\/nico\.ms\/sm([0-9]+)/, 'niconico');
+                tootPic.mstdn.timeline._checkURL(embed, toot, /https:\/\/soundcloud\.com\/(([0-9a-zA-Z]+)\/([0-9a-zA-Z\-]+))/, 'soundcloud');
+                toot['embed'] = embed;
+                return media || embed;
             },
 
-            _checkURL: function(youtube, toot, pattern) {
+            _checkURL: function(arr, toot, pattern, type) {
                 reg_gi = new RegExp(pattern, 'gi');
                 reg_i = new RegExp(pattern, 'i');
                 match = toot['content'].match(reg_gi);
                 if (match) {
                     match.forEach(function(url) {
                         part = url.match(reg_i);
-                        youtube.push({
+                        arr.push({
                             'url': url,
-                            'id': part[1]
+                            'id': part[1],
+                            'type': type
                         });
                     });
                 }
             },
-            checkYoutube: function(toot) {
-                var youtube = new Array();
-                tootPic.mstdn.timeline._checkURL(youtube, toot, /https:\/\/youtu\.be\/([^"]+)/);
-                tootPic.mstdn.timeline._checkURL(youtube, toot, /https:\/\/www\.youtube\.com\/watch\?v=([^"]+)/);
-                toot['youtube'] = youtube;
-                return youtube;
-            },
-            checkTwitch: function(toot) {
-                var twitch = new Array();
-                tootPic.mstdn.timeline._checkURL(twitch, toot, /https:\/\/clips\.twitch\.tv\/([^"]+)/);
-                toot['twitch'] = twitch;
-                return twitch;
+            checkNicoNico: function(toot) {
+                var niconico = new Array();
+                tootPic.mstdn.timeline._checkURL(niconico, toot, /https:\/\/clips\.twitch\.tv\/([^"]+)/);
+                toot['niconico'] = niconico;
+                return niconico;
             },
             innerHTML: function(toot) {
                 var date = (new Date(toot['created_at'])).toLocaleString();
@@ -223,7 +249,15 @@ var tootPic = {
                                     // Twitchリンクを消去
                                     if (e.nodeName == "A" && e.hostname == "clips.twitch.tv") {
                                         toot['content'] = toot['content'].replace(e.outerHTML, "");
-                                    }                                    
+                                    }
+                                    // Niconicoリンクを消去
+                                    if (e.nodeName == "A" && e.hostname == "nico.ms") {
+                                        toot['content'] = toot['content'].replace(e.outerHTML, "");
+                                    }
+                                    // Soundcloudリンクを消去
+                                    if (e.nodeName == "A" && e.hostname == "soundcloud.com") {
+                                        toot['content'] = toot['content'].replace(e.outerHTML, "");
+                                    }
                                 });});
 
                                 // カスタム絵文字変換
@@ -250,24 +284,12 @@ var tootPic = {
                                         'sensitive': toot['sensitive']
                                     });
                                 });
-                                if (typeof(toot['youtube']) != "undefined") {
-                                    toot['youtube'].forEach(function(url) {
+                                if (typeof(toot['embed']) != "undefined") {
+                                    toot['embed'].forEach(function(url) {
                                         media_list.push({
                                             'id': toot['id'],
-                                            'type': 'youtube',
-                                            'youtube_id': url['id'],
-                                            'url': url['url'],
-                                            'content': tootPic.mstdn.timeline.innerHTML(toot),
-                                            'sensitive': toot['sensitive']
-                                         });
-                                    });
-                                }
-                                if (typeof(toot['twitch']) != "undefined") {
-                                    toot['twitch'].forEach(function(url) {
-                                        media_list.push({
-                                            'id': toot['id'],
-                                            'type': 'twitch',
-                                            'twitch_id': url['id'],
+                                            'type': url['type'],
+                                            'embed_id': url['id'],
                                             'url': url['url'],
                                             'content': tootPic.mstdn.timeline.innerHTML(toot),
                                             'sensitive': toot['sensitive']
@@ -277,7 +299,7 @@ var tootPic = {
                             }
                         });
 
-                        tootPic.gallery.addList(media_list, caption_list, video_list);
+                        tootPic.gallery.addList(media_list);
 
                         if (arr.length) {
                             var last_toot = arr.getLastVal();
@@ -346,7 +368,7 @@ var tootPic = {
     },
 
     getShareUrl: function() {
-        return "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+tootPic.pic_url+"/?domain="+tootPic.mstdn.domain+"&tag="+tootPic.mstdn.timeline.tag+" #"+tootPic.mstdn.timeline.tag);
+        return "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+tootPic.pic_url+"/?domain="+tootPic.mstdn.domain+"&tag="+encodeURIComponent(tootPic.mstdn.timeline.tag)+" #"+tootPic.mstdn.timeline.tag);
     },
     menuInit: function() {
         $("#domain").val(tootPic.mstdn.domain);
