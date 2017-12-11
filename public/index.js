@@ -59,7 +59,7 @@ var tootPic = {
         },
         addSoundcloud: function(embed) {
             $('.container > .row').append('<div class="card" id="'+embed['id']+'"></div>');
-            var url = "http://soundcloud.com/oembed?format=json&url=https://soundcloud.com/"+embed['embed_id'];
+            var url = "https://soundcloud.com/oembed?format=json&url=https://soundcloud.com/"+embed['embed_id'];
             tootPic.httpRequest(url, "GET", {}, {}, function(responseText) {
                 var arr = JSON.parse(responseText);
                 $('.container > .row > #'+embed['id']).append(arr['html']+embed['content']);
@@ -85,15 +85,7 @@ var tootPic = {
             }
             $(".container > .row").append('<div class="card" id="'+image['id']+'"><a '+image_display+' href="'+image['src']+'"><img src="'+image['thumb']+'"></a>'+media_spoiler+image['content']+'</div>');
         },
-        embedSoundcloud: function(response) {
-            console.log(response);
-        },
-/*        writeNicoVideoPlayer: function(player) {
-            player.width = "400";
-            player.height = "255";
-            player.write(id);
-        },
- */       init: function() {
+        init: function() {
             $("body").on("click", ".status__content__spoiler-link", function(e) {
                 var id = $(this).parent().parent().parent().parent().parent().parent().attr("id");
                 if ($("div#"+id+" .e-content").css("display")=="none") {
