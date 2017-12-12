@@ -297,8 +297,13 @@ var tootPic = {
                             var last_toot = arr.getLastVal();
                             tootPic.mstdn.timeline.setMaxId(last_toot['id']);
                             tootPic.mstdn.timeline.setLastDate(last_toot['created_at']);
+                        } 
+
+                        if (arr.length < tootPic.mstdn.timeline.limit) {
+                            $("#nav-foot").hide();
+                            $(window).unbind("bottom");
                         }
-                        
+
                         tootPic.hideLoader();
                     },
                     function(responseText) {
@@ -422,14 +427,20 @@ var tootPic = {
             }
             return false;
         });
-
         this.setMenuStyle();
+        this.resetTimeline();
     },
     resetTimeline: function() {
         $('.container > .row').empty();
         tootPic.mstdn.timeline.setMaxId("");
         tootPic.mstdn.timeline.get();
         $(".share-btn").attr("href", tootPic.getShareUrl());
+        $("#nav-foot").show();
+        $(window).bind("bottom", function() {
+            if ($('#loading-bg').css('display')!='block') {
+                tootPic.mstdn.timeline.get();
+            }
+        });
     },
 
     setMenuStyle: function() {
@@ -482,10 +493,7 @@ var tootPic = {
 
         this.mstdn.timeline.get();
 
-        $(window).bottom();
-        $(window).bind("bottom", function() {
-            tootPic.mstdn.timeline.get();
-        });
+        $(window).bottom();        
 
         // テストモード
         if (this.params.test=="t") {
