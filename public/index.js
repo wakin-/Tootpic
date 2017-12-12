@@ -362,44 +362,93 @@ var tootPic = {
     getShareUrl: function() {
         return "https://"+tootPic.mstdn.domain+"/share?text="+encodeURIComponent("\n"+tootPic.pic_url+"/?domain="+tootPic.mstdn.domain+"&tag="+encodeURIComponent(tootPic.mstdn.timeline.tag)+" #"+tootPic.mstdn.timeline.tag);
     },
+    checkAndSetDomain: function() {
+        var match = $('#domain').val().match(tootPic.domain_reg_rule);
+        if (match) {
+            tootPic.mstdn.setDomain(match[0]);
+            return "";
+        } else {
+            return "有効なドメインを入力してください。";
+        }
+    },
+    checkAndSetTag: function() {
+        var match = $('#hashtag').val().match(tootPic.tag_reg_rule);
+        if (match) {
+            tootPic.mstdn.timeline.setTag(match[0]);
+            return "";
+        } else {
+            return "有効なタグを入力してください。";
+        }
+    },
     menuInit: function() {
         $("#domain").val(tootPic.mstdn.domain);
         $("#hashtag").val(tootPic.mstdn.timeline.tag);
         $("body").on('change', '#domain', function() {
-            var match = this.value.match(tootPic.domain_reg_rule);
-            if (match) {
-                tootPic.mstdn.setDomain(match[0]);
-                $('.container > .row').empty();
-                tootPic.mstdn.timeline.setMaxId("");
-                tootPic.mstdn.timeline.get();
-                $(".toot-btn").attr("href", tootPic.getShareUrl());
-                $("#domain-error").remove();
+            var msg = tootPic.checkAndSetDomain();
+            if (msg=="") {
+                tootPic.resetTimeline();
             } else {
-                if ($("#domain-error").length==0) {
-                    alert("有効なドメインを入力してください。");
-                }
+                alert(msg);
             }
         });
         $("body").on('change', '#hashtag', function() {
-            var match = this.value.match(tootPic.tag_reg_rule);
-            if (match) {
-                tootPic.mstdn.timeline.setTag(match[0]);
-                $('.container > .row').empty();
-                tootPic.mstdn.timeline.setMaxId("");
-                tootPic.mstdn.timeline.get();
-                $(".toot-btn").attr("href", tootPic.getShareUrl());
-                $("#hashtag-error").remove();
+            var msg = tootPic.checkAndSetTag();            
+            if (msg=="") {
+                tootPic.resetTimeline();
             } else {
-                if ($("#tag-error").length==0) {
-                    alert("有効なタグを入力してください。");                    
-                }
+                alert(msg);
             }
         });
+
         $("body").on("click", "#more", function() {
             tootPic.mstdn.timeline.get();
             return false;
         });
-        $(".toot-btn").attr("href", tootPic.getShareUrl());
+        $(".share-btn").attr("href", tootPic.getShareUrl());
+        $(".refresh-btn").on("click", function() {
+            var error_msg = [];
+            msg = tootPic.checkAndSetDomain();
+            if(msg!="") {
+                error_msg.push(msg);
+            }
+            msg = tootPic.checkAndSetTag();
+            if (msg!="") {
+                error_msg.push(msg);
+            }
+            if (error_msg.length==0) {
+                tootPic.resetTimeline();
+            } else {
+                alert(error_msg.join("\n"));
+            }
+            return false;
+        });
+
+        this.setMenuStyle();
+    },
+    resetTimeline: function() {
+        $('.container > .row').empty();
+        tootPic.mstdn.timeline.setMaxId("");
+        tootPic.mstdn.timeline.get();
+        $(".share-btn").attr("href", tootPic.getShareUrl());
+    },
+
+    setMenuStyle: function() {
+        var height = $('header').height();
+        $('body').css('padding-top',height); 
+
+        var $win = $(window),
+        $header = $('header'),
+        headerHeight = $header.outerHeight(),
+        startPos = 0;
+        $win.on('load scroll', function() {
+            var value = $(this).scrollTop();
+            if ( value > startPos && value > headerHeight ) {
+                $header.css('top', '-' + headerHeight + 'px');
+            } else {
+                $header.css('top', '0');
+            }
+            startPos = value;
+        });
     },
 
     // 最終取得トゥートの時間を表示
