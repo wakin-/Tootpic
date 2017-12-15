@@ -3,7 +3,7 @@ Array.prototype.getLastVal = function (){ return this[this.length -1];}
 var tootPic = {
     pic_url: "https://tootpic.net",
     client_name: "Tootpic",
-    domain_reg_rule: new RegExp(/^[0-9a-zA-Z\-]+\.[0-9a-zA-Z\-]+$/, 'gi'),
+    domain_reg_rule: new RegExp(/^[0-9a-zA-Z\-\.]+\.[0-9a-zA-Z\-]+$/, 'gi'),
     tag_reg_rule: new RegExp(/^[\w\u30a0-\u30ff\u3040-\u309f\u30e0-\u9fcf０-ｚ]+$/, 'gi'),
 
     // 非同期HTTPリクエスト
@@ -210,6 +210,7 @@ var tootPic = {
                 var method = "GET";
                 var header = {};
                 var data = {};
+                console.log(url);
                 tootPic.httpRequest(url, method, header, data,
                     function(responseText) {
                         var media_list = [];
@@ -262,30 +263,34 @@ var tootPic = {
                                     });
                                 }
 
+                                cnt=1;
                                 toot['media_attachments'].forEach(function(attachment) {
                                     var type = 'img';
                                     if (attachment['type'] == 'gifv') {
                                         type = 'video';
                                     }
                                     media_list.push({
-                                        'id': toot['id'],
+                                        'id': toot['id']+'_'+cnt,
                                         'type': type,
                                         'src': attachment['url'],
                                         'thumb': attachment['preview_url'],
                                         'content': tootPic.mstdn.timeline.innerHTML(toot),
                                         'sensitive': toot['sensitive']
                                     });
+                                    cnt++;
                                 });
                                 if (typeof(toot['embed']) != "undefined") {
+
                                     toot['embed'].forEach(function(url) {
                                         media_list.push({
-                                            'id': toot['id'],
+                                            'id': toot['id']+'_'+cnt,
                                             'type': url['type'],
                                             'embed_id': url['id'],
                                             'url': url['url'],
                                             'content': tootPic.mstdn.timeline.innerHTML(toot),
                                             'sensitive': toot['sensitive']
                                          });
+                                         cnt++;
                                     });
                                 }
                             }
@@ -490,8 +495,6 @@ var tootPic = {
         this.menuInit();
 
         this.gallery.init();
-
-        this.mstdn.timeline.get();
 
         $(window).bottom();        
 
